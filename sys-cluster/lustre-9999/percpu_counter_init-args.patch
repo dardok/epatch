@@ -1,0 +1,11 @@
+--- a/lustre/ldlm/ldlm_reclaim.c	2015-08-19 08:42:05.000000000 -0400
++++ b/lustre/ldlm/ldlm_reclaim.c	2015-09-03 13:41:29.279884860 -0400
+@@ -333,7 +333,7 @@
+ 	ldlm_last_reclaim_age = LDLM_RECLAIM_AGE_MAX;
+ 	ldlm_last_reclaim_time = cfs_time_current();
+ 
+-	return percpu_counter_init(&ldlm_granted_total, 0);
++	return percpu_counter_init(&ldlm_granted_total, 0, GFP_KERNEL);
+ }
+ 
+ void ldlm_reclaim_cleanup(void)

@@ -1,0 +1,214 @@
+diff --git a/acinclude.m4 b/acinclude.m4
+index 79df95a..af56ea4 100644
+--- a/acinclude.m4
++++ b/acinclude.m4
+@@ -837,6 +837,16 @@ case $AFS_SYSNAME in *_linux* | *_umlinux*)
+ 		 LINUX_KBUILD_USES_EXTRA_CFLAGS
+ 		 LINUX_KERNEL_COMPILE_WORKS
+ 
++		 dnl Operation signature checks
++		 AC_CHECK_LINUX_OPERATION([inode_operations], [follow_link], [no_nameidata],
++					  [#include <linux/fs.h>],
++					  [const char *],
++					  [struct dentry *dentry, void **link_data])
++		 AC_CHECK_LINUX_OPERATION([inode_operations], [put_link], [no_nameidata],
++					  [#include <linux/fs.h>],
++					  [void],
++					  [struct inode *inode, void *link_data])
++
+ 		 dnl Check for header files
+ 		 AC_CHECK_LINUX_HEADER([config.h])
+ 		 AC_CHECK_LINUX_HEADER([completion.h])
+@@ -894,6 +904,7 @@ case $AFS_SYSNAME in *_linux* | *_umlinux*)
+ 		 AC_CHECK_LINUX_STRUCT([task_struct], [sigmask_lock], [sched.h])
+ 		 AC_CHECK_LINUX_STRUCT([task_struct], [tgid], [sched.h])
+ 		 AC_CHECK_LINUX_STRUCT([task_struct], [thread_info], [sched.h])
++		 AC_CHECK_LINUX_STRUCT([task_struct], [total_link_count], [sched.h])
+ 		 LINUX_SCHED_STRUCT_TASK_STRUCT_HAS_SIGNAL_RLIM
+ 
+ 		 dnl Check for typed structure elements
+@@ -989,6 +1000,9 @@ case $AFS_SYSNAME in *_linux* | *_umlinux*)
+ 		 AC_CHECK_LINUX_FUNC([sock_create_kern],
+ 				     [#include <linux/net.h>],
+ 				     [sock_create_kern(0, 0, 0, NULL);])
++		 AC_CHECK_LINUX_FUNC([sock_create_kern_ns],
++				     [#include <linux/net.h>],
++				     [sock_create_kern(NULL, 0, 0, 0, NULL);])
+ 		 AC_CHECK_LINUX_FUNC([splice_direct_to_actor],
+ 				     [#include <linux/splice.h>],
+ 				     [splice_direct_to_actor(NULL,NULL,NULL);])
+diff --git a/src/afs/LINUX/osi_vfsops.c b/src/afs/LINUX/osi_vfsops.c
+index d6504ae..934478d 100644
+--- a/src/afs/LINUX/osi_vfsops.c
++++ b/src/afs/LINUX/osi_vfsops.c
+@@ -112,7 +112,7 @@ afs_fill_super(struct super_block *sb, void *data, int silent)
+ #endif
+ 
+     /* used for inodes backing_dev_info field, also */
+-    afs_backing_dev_info = osi_Alloc(sizeof(struct backing_dev_info));
++    afs_backing_dev_info = kmalloc(sizeof(struct backing_dev_info), GFP_NOFS);
+     memset(afs_backing_dev_info, 0, sizeof(struct backing_dev_info));
+ #if defined(HAVE_LINUX_BDI_INIT)
+     bdi_init(afs_backing_dev_info);
+@@ -338,7 +338,7 @@ afs_put_super(struct super_block *sbp)
+ #if defined(HAVE_LINUX_BDI_INIT)
+     bdi_destroy(afs_backing_dev_info);
+ #endif
+-    osi_Free(afs_backing_dev_info, sizeof(struct backing_dev_info));
++    kfree(afs_backing_dev_info);
+     AFS_GUNLOCK();
+ 
+     sbp->s_dev = 0;
+diff --git a/src/afs/LINUX/osi_vnodeops.c b/src/afs/LINUX/osi_vnodeops.c
+index 91c09ed..3c0cb33 100644
+--- a/src/afs/LINUX/osi_vnodeops.c
++++ b/src/afs/LINUX/osi_vnodeops.c
+@@ -1385,9 +1385,17 @@ afs_dentry_automount(afs_linux_path_t *path)
+ {
+     struct dentry *target;
+ 
+-    /* avoid symlink resolution limits when resolving; we cannot contribute to
+-     * an infinite symlink loop */
++    /* 
++     * Avoid symlink resolution limits when resolving; we cannot contribute to
++     * an infinite symlink loop.
++     *
++     * On newer kernels the field has moved to the private nameidata structure
++     * so we can't adjust it here.  This may cause ELOOP when using a path with
++     * 40 or more directories that are not already in the dentry cache.
++     */
++#if defined(STRUCT_TASK_STRUCT_HAS_TOTAL_LINK_COUNT)
+     current->total_link_count--;
++#endif
+ 
+     target = canonical_dentry(path->dentry->d_inode);
+ 
+@@ -1888,14 +1896,22 @@ afs_linux_readlink(struct dentry *dp, char *target, int maxlen)
+ /* afs_linux_follow_link
+  * a file system dependent link following routine.
+  */
++#if defined(HAVE_LINUX_INODE_OPERATIONS_FOLLOW_LINK_NO_NAMEIDATA)
++static const char *afs_linux_follow_link(struct dentry *dentry, void **link_data)
++#else
+ static int afs_linux_follow_link(struct dentry *dentry, struct nameidata *nd)
++#endif
+ {
+     int code;
+     char *name;
+ 
+-    name = osi_Alloc(PATH_MAX);
++    name = kmalloc(PATH_MAX, GFP_NOFS);
+     if (!name) {
++#if defined(HAVE_LINUX_INODE_OPERATIONS_FOLLOW_LINK_NO_NAMEIDATA)
++	return ERR_PTR(-EIO);
++#else
+ 	return -EIO;
++#endif
+     }
+ 
+     AFS_GLOCK();
+@@ -1903,22 +1919,41 @@ static int afs_linux_follow_link(struct dentry *dentry, struct nameidata *nd)
+     AFS_GUNLOCK();
+ 
+     if (code < 0) {
++#if defined(HAVE_LINUX_INODE_OPERATIONS_FOLLOW_LINK_NO_NAMEIDATA)
++	return ERR_PTR(code);
++#else
+ 	return code;
++#endif
+     }
+ 
+     name[code] = '\0';
++#if defined(HAVE_LINUX_INODE_OPERATIONS_FOLLOW_LINK_NO_NAMEIDATA)
++    return *link_data = name;
++#else
+     nd_set_link(nd, name);
+     return 0;
++#endif
+ }
+ 
++#if defined(HAVE_LINUX_INODE_OPERATIONS_PUT_LINK_NO_NAMEIDATA)
++static void
++afs_linux_put_link(struct inode *inode, void *link_data)
++{
++    char *name = link_data;
++
++    if (name && !IS_ERR(name))
++	kfree(name);
++}
++#else
+ static void
+ afs_linux_put_link(struct dentry *dentry, struct nameidata *nd)
+ {
+     char *name = nd_get_link(nd);
+-    if (name && !IS_ERR(name)) {
+-	osi_Free(name, PATH_MAX);
+-    }
++
++    if (name && !IS_ERR(name))
++	kfree(name);
+ }
++#endif /* HAVE_LINUX_INODE_OPERATIONS_PUT_LINK_NO_NAMEIDATA */
+ 
+ #endif /* USABLE_KERNEL_PAGE_SYMLINK_CACHE */
+ 
+@@ -2174,8 +2209,8 @@ afs_linux_fillpage(struct file *fp, struct page *pp)
+     address = kmap(pp);
+     ClearPageError(pp);
+ 
+-    auio = osi_Alloc(sizeof(struct uio));
+-    iovecp = osi_Alloc(sizeof(struct iovec));
++    auio = kmalloc(sizeof(struct uio), GFP_NOFS);
++    iovecp = kmalloc(sizeof(struct iovec), GFP_NOFS);
+ 
+     setup_uio(auio, iovecp, (char *)address, offset, PAGE_SIZE, UIO_READ,
+               AFS_UIOSYS);
+@@ -2206,8 +2241,8 @@ afs_linux_fillpage(struct file *fp, struct page *pp)
+ 
+     kunmap(pp);
+ 
+-    osi_Free(auio, sizeof(struct uio));
+-    osi_Free(iovecp, sizeof(struct iovec));
++    kfree(auio);
++    kfree(iovecp);
+ 
+     crfree(credp);
+     return afs_convert_code(code);
+diff --git a/src/cf/linux-test1.m4 b/src/cf/linux-test1.m4
+index f7176d2..fd5bfd8 100644
+--- a/src/cf/linux-test1.m4
++++ b/src/cf/linux-test1.m4
+@@ -150,3 +150,18 @@ AC_DEFUN([AC_CHECK_LINUX_TYPED_STRUCT],
+ 		       [Define if kernel typedef'd $1 has the $2 element])
+  ])
+ 
++dnl AC_CHECK_LINUX_OPERATION([structure], [operation], [label], [includes], [return_type], [args])
++AC_DEFUN([AC_CHECK_LINUX_OPERATION],
++ [AS_VAR_PUSHDEF([ac_linux_operation], [ac_cv_linux_operation_$1_$2_$3])
++  AC_CACHE_CHECK([operation $2 in $1], [ac_linux_operation],
++    [save_CPPFLAGS="$CPPFLAGS"
++     CPPFLAGS="$CPPFLAGS -Werror"
++     AC_TRY_KBUILD([$4], [struct $1 ops; $5 op($6) { return ($5)0; }; ops.$2 = op;],
++		   AS_VAR_SET([ac_linux_operation], [yes]),
++		   AS_VAR_SET([ac_linux_operation], [no]))
++     CPPFLAGS="$save_CPPFLAGS"
++    ])
++  AS_IF([test AS_VAR_GET([ac_linux_operation]) = yes],
++	[AC_DEFINE(AS_TR_CPP(HAVE_LINUX_$1_$2_$3), 1,
++		   [Define if $1 has $2 operation of form $6])])
++ ])
+diff --git a/src/rx/LINUX/rx_knet.c b/src/rx/LINUX/rx_knet.c
+index 3f7f2bc..1a5cfde 100644
+--- a/src/rx/LINUX/rx_knet.c
++++ b/src/rx/LINUX/rx_knet.c
+@@ -42,7 +42,9 @@ rxk_NewSocketHost(afs_uint32 ahost, short aport)
+     int pmtu = IP_PMTUDISC_DONT;
+ #endif
+ 
+-#ifdef HAVE_LINUX_SOCK_CREATE_KERN
++#ifdef HAVE_LINUX_SOCK_CREATE_KERN_NS
++    code = sock_create_kern(&init_net, AF_INET, SOCK_DGRAM, IPPROTO_UDP, &sockp);
++#elif defined(HAVE_LINUX_SOCK_CREATE_KERN)
+     code = sock_create_kern(AF_INET, SOCK_DGRAM, IPPROTO_UDP, &sockp);
+ #elif defined(LINUX_KERNEL_SOCK_CREATE_V)
+     code = sock_create(AF_INET, SOCK_DGRAM, IPPROTO_UDP, &sockp, 0);

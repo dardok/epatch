@@ -20,3 +20,25 @@
                                       unsigned int )
  {
      _stream >> Array< T >( a.address(), a.count( ));
+--- Collage/co/dataOStreamArchive.h.orig	2016-09-12 08:52:44.000000000 -0400
++++ Collage/co/dataOStreamArchive.h	2016-09-12 08:52:56.000000000 -0400
+@@ -68,7 +68,7 @@
+ 
+     /** @internal use optimized save for arrays. */
+     template< typename T >
+-    void save_array( const boost::serialization::array< T >& a, unsigned int );
++    void save_array( const boost::serialization::array_wrapper< T >& a, unsigned int );
+ 
+     /** @internal enable serialization optimization for arrays. */
+     struct use_array_optimization
+--- Collage/co/dataOStreamArchive.ipp.orig	2016-09-12 08:52:48.000000000 -0400
++++ Collage/co/dataOStreamArchive.ipp	2016-09-12 08:53:04.000000000 -0400
+@@ -17,7 +17,7 @@
+ 
+ 
+ template< typename T >
+-void DataOStreamArchive::save_array( const boost::serialization::array< T >& a,
++void DataOStreamArchive::save_array( const boost::serialization::array_wrapper< T >& a,
+                                      unsigned int )
+ {
+     _stream << Array< const T >( a.address(), a.count( ));

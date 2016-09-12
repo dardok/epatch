@@ -9,3 +9,14 @@
  
      /** @internal enable serialization optimization for arrays. */
      struct use_array_optimization
+--- Collage/co/dataIStreamArchive.ipp.orig	2016-09-12 08:50:09.000000000 -0400
++++ Collage/co/dataIStreamArchive.ipp	2016-09-12 08:50:25.000000000 -0400
+@@ -22,7 +22,7 @@
+ {
+ 
+ template< typename T >
+-void DataIStreamArchive::load_array( boost::serialization::array< T >& a,
++void DataIStreamArchive::load_array( boost::serialization::array_wrapper< T >& a,
+                                      unsigned int )
+ {
+     _stream >> Array< T >( a.address(), a.count( ));

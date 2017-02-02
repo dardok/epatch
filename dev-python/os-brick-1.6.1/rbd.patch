@@ -1,0 +1,32 @@
+--- os_brick/initiator/connectors/rbd.py	2016-12-04 20:04:45.967445000 +0000
++++ os_brick/initiator/connectors/rbd_new.py	2016-12-04 22:03:53.548136252 +0000
+@@ -78,6 +78,11 @@
+             msg = (_("Failed to write data to %s.") % (ceph_conf_path))
+             raise exception.BrickException(msg=msg)
+ 
++    def _delete_ceph_conf(self, ceph_conf_path):
++        if os.path.exists(ceph_conf_path):
++            os.remove(ceph_conf_path)
++
++
+     def _get_rbd_handle(self, connection_properties):
+         try:
+             user = connection_properties['auth_username']
+@@ -97,9 +102,6 @@
+         rbd_handle = linuxrbd.RBDVolumeIOWrapper(
+             linuxrbd.RBDImageMetadata(rbd_volume, pool, user, conf))
+ 
+-        if os.path.exists(conf):
+-            os.remove(conf)
+-
+         return rbd_handle
+ 
+     @staticmethod
+@@ -171,6 +173,7 @@
+                 rbd_handle = device_info.get('path', None)
+                 if rbd_handle is not None:
+                     rbd_handle.close()
++                    self._delete_ceph_conf(rbd_handle.rbd_conf)
+ 
+     def check_valid_device(self, path, run_as_root=True):
+         """Verify an existing RBD handle is connected and valid."""

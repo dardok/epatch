@@ -29,6 +29,6 @@
 +    return *(short*)&v;
 +#else
      return (short)__float2half_rn(v);
-+#endif0
++#endif
  }
  //! @}

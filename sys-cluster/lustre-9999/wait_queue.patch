@@ -1,0 +1,280 @@
+diff --git a/libcfs/libcfs/debug.c b/libcfs/libcfs/debug.c
+index 999eec41f9..4cb95ea668 100644
+--- a/libcfs/libcfs/debug.c
++++ b/libcfs/libcfs/debug.c
+@@ -407,7 +407,7 @@ static int libcfs_debug_dumplog_thread(void *arg)
+ 
+ void libcfs_debug_dumplog(void)
+ {
+-	wait_queue_t wait;
++	wait_queue_entry_t wait;
+ 	struct task_struct    *dumper;
+ 	ENTRY;
+ 
+diff --git a/libcfs/libcfs/tracefile.c b/libcfs/libcfs/tracefile.c
+index 805cb8c87e..5ac1ae6a40 100644
+--- a/libcfs/libcfs/tracefile.c
++++ b/libcfs/libcfs/tracefile.c
+@@ -946,7 +946,7 @@ static int tracefiled(void *arg)
+ 	complete(&tctl->tctl_start);
+ 
+ 	while (1) {
+-		wait_queue_t __wait;
++		wait_queue_entry_t __wait;
+ 
+                 pc.pc_want_daemon_pages = 0;
+                 collect_pages(&pc);
+diff --git a/lnet/klnds/o2iblnd/o2iblnd_cb.c b/lnet/klnds/o2iblnd/o2iblnd_cb.c
+index 35502b6ea6..11248e028f 100644
+--- a/lnet/klnds/o2iblnd/o2iblnd_cb.c
++++ b/lnet/klnds/o2iblnd/o2iblnd_cb.c
+@@ -3297,7 +3297,7 @@ int
+ kiblnd_connd (void *arg)
+ {
+ 	spinlock_t	  *lock= &kiblnd_data.kib_connd_lock;
+-	wait_queue_t	   wait;
++	wait_queue_entry_t	   wait;
+ 	unsigned long      flags;
+ 	kib_conn_t        *conn;
+ 	int                timeout;
+@@ -3545,7 +3545,7 @@ kiblnd_scheduler(void *arg)
+ 	long			id = (long)arg;
+ 	struct kib_sched_info	*sched;
+ 	kib_conn_t		*conn;
+-	wait_queue_t		wait;
++	wait_queue_entry_t		wait;
+ 	unsigned long		flags;
+ 	struct ib_wc		wc;
+ 	int			did_something;
+@@ -3687,7 +3687,7 @@ kiblnd_failover_thread(void *arg)
+ {
+ 	rwlock_t	*glock = &kiblnd_data.kib_global_lock;
+ 	kib_dev_t	*dev;
+-	wait_queue_t	 wait;
++	wait_queue_entry_t	 wait;
+ 	unsigned long	 flags;
+ 	int		 rc;
+ 
+diff --git a/lnet/klnds/socklnd/socklnd_cb.c b/lnet/klnds/socklnd/socklnd_cb.c
+index f8b0f068c7..170890caa4 100644
+--- a/lnet/klnds/socklnd/socklnd_cb.c
++++ b/lnet/klnds/socklnd/socklnd_cb.c
+@@ -2132,7 +2132,7 @@ ksocknal_connd(void *arg)
+ {
+ 	spinlock_t *connd_lock = &ksocknal_data.ksnd_connd_lock;
+ 	struct ksock_connreq *cr;
+-	wait_queue_t wait;
++	wait_queue_entry_t wait;
+ 	int nloops = 0;
+ 	int cons_retry = 0;
+ 
+@@ -2510,7 +2510,7 @@ ksocknal_check_peer_timeouts(int idx)
+ 
+ int ksocknal_reaper(void *arg)
+ {
+-	wait_queue_t wait;
++	wait_queue_entry_t wait;
+ 	struct ksock_conn *conn;
+ 	struct ksock_sched *sched;
+ 	struct list_head enomem_conns;
+diff --git a/lnet/lnet/lib-eq.c b/lnet/lnet/lib-eq.c
+index c827e65649..3bca6b7753 100644
+--- a/lnet/lnet/lib-eq.c
++++ b/lnet/lnet/lib-eq.c
+@@ -323,7 +323,7 @@ lnet_eq_wait_locked(signed long *timeout)
+ __must_hold(&the_lnet.ln_eq_wait_lock)
+ {
+ 	signed long tms = *timeout;
+-	wait_queue_t wl;
++	wait_queue_entry_t wl;
+ 	int wait;
+ 
+ 	if (tms == 0)
+diff --git a/lnet/lnet/lib-socket.c b/lnet/lnet/lib-socket.c
+index 57678b3d8a..806840cbc8 100644
+--- a/lnet/lnet/lib-socket.c
++++ b/lnet/lnet/lib-socket.c
+@@ -568,7 +568,7 @@ static inline wait_queue_head_t *sk_sleep(struct sock *sk)
+ int
+ lnet_sock_accept(struct socket **newsockp, struct socket *sock)
+ {
+-	wait_queue_t   wait;
++	wait_queue_entry_t   wait;
+ 	struct socket *newsock;
+ 	int	       rc;
+ 
+diff --git a/lnet/lnet/router_proc.c b/lnet/lnet/router_proc.c
+index c71571aa94..85e901c16a 100644
+--- a/lnet/lnet/router_proc.c
++++ b/lnet/lnet/router_proc.c
+@@ -950,7 +950,7 @@ static struct ctl_table lnet_table[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= &proc_lnet_portal_rotor,
+ 	},
+-	{ 0 }
++	{},
+ };
+ 
+ void lnet_router_debugfs_init(void)
+diff --git a/lustre/autoconf/lustre-core.m4 b/lustre/autoconf/lustre-core.m4
+index c2f50384c1..8db54df567 100644
+--- a/lustre/autoconf/lustre-core.m4
++++ b/lustre/autoconf/lustre-core.m4
+@@ -506,7 +506,7 @@ __add_wait_queue_exclusive, [
+ 	#include <linux/wait.h>
+ ],[
+ 	wait_queue_head_t queue;
+-	wait_queue_t	  wait;
++	wait_queue_entry_t wait;
+ 	__add_wait_queue_exclusive(&queue, &wait);
+ ],[
+ 	AC_DEFINE(HAVE___ADD_WAIT_QUEUE_EXCLUSIVE, 1,
+diff --git a/lustre/fid/fid_request.c b/lustre/fid/fid_request.c
+index 28a6b1e229..8c489aec4e 100644
+--- a/lustre/fid/fid_request.c
++++ b/lustre/fid/fid_request.c
+@@ -245,7 +245,7 @@ static int seq_client_alloc_seq(const struct lu_env *env,
+ }
+ 
+ static int seq_fid_alloc_prep(struct lu_client_seq *seq,
+-			      wait_queue_t *link)
++			      wait_queue_entry_t *link)
+ {
+ 	if (seq->lcs_update) {
+ 		add_wait_queue(&seq->lcs_waitq, link);
+@@ -308,7 +308,7 @@ static void seq_fid_alloc_fini(struct lu_client_seq *seq, __u64 seqnr,
+ int seq_client_get_seq(const struct lu_env *env,
+ 		       struct lu_client_seq *seq, u64 *seqnr)
+ {
+-	wait_queue_t link;
++	wait_queue_entry_t link;
+ 	int rc;
+ 
+ 	LASSERT(seqnr != NULL);
+@@ -345,7 +345,7 @@ EXPORT_SYMBOL(seq_client_get_seq);
+ int seq_client_alloc_fid(const struct lu_env *env,
+ 			 struct lu_client_seq *seq, struct lu_fid *fid)
+ {
+-	wait_queue_t link;
++	wait_queue_entry_t link;
+ 	int rc;
+ 	ENTRY;
+ 
+@@ -405,7 +405,7 @@ EXPORT_SYMBOL(seq_client_alloc_fid);
+  */
+ void seq_client_flush(struct lu_client_seq *seq)
+ {
+-	wait_queue_t link;
++	wait_queue_entry_t link;
+ 
+ 	LASSERT(seq != NULL);
+ 	init_waitqueue_entry(&link, current);
+diff --git a/lustre/include/lustre_lib.h b/lustre/include/lustre_lib.h
+index f8330c14c7..5ffee86df1 100644
+--- a/lustre/include/lustre_lib.h
++++ b/lustre/include/lustre_lib.h
+@@ -218,7 +218,7 @@ struct l_wait_info {
+  */
+ #ifndef HAVE___ADD_WAIT_QUEUE_EXCLUSIVE
+ static inline void __add_wait_queue_exclusive(wait_queue_head_t *q,
+-					      wait_queue_t *wait)
++					      wait_queue_entry_t *wait)
+ {
+ 	wait->flags |= WQ_FLAG_EXCLUSIVE;
+ 	__add_wait_queue(q, wait);
+@@ -226,7 +226,7 @@ static inline void __add_wait_queue_exclusive(wait_queue_head_t *q,
+ #endif /* HAVE___ADD_WAIT_QUEUE_EXCLUSIVE */
+ 
+ /**
+- * wait_queue_t of Linux (version < 2.6.34) is a FIFO list for exclusively
++ * wait_queue_entry_t of Linux (version < 2.6.34) is a FIFO list for exclusively
+  * waiting threads, which is not always desirable because all threads will
+  * be waken up again and again, even user only needs a few of them to be
+  * active most time. This is not good for performance because cache can
+@@ -253,7 +253,7 @@ static inline void __add_wait_queue_exclusive(wait_queue_head_t *q,
+  */
+ #define __l_wait_event(wq, condition, info, ret, l_add_wait)                   \
+ do {                                                                           \
+-	wait_queue_t __wait;                                                   \
++	wait_queue_entry_t __wait;                                                   \
+ 	cfs_duration_t __timeout = info->lwi_timeout;                          \
+ 	sigset_t   __blocked;                                              \
+ 	int   __allow_intr = info->lwi_allow_intr;                             \
+diff --git a/lustre/llite/lcommon_cl.c b/lustre/llite/lcommon_cl.c
+index 93deb63ab9..e176b4b27b 100644
+--- a/lustre/llite/lcommon_cl.c
++++ b/lustre/llite/lcommon_cl.c
+@@ -193,7 +193,7 @@ int cl_file_inode_init(struct inode *inode, struct lustre_md *md)
+ static void cl_object_put_last(struct lu_env *env, struct cl_object *obj)
+ {
+ 	struct lu_object_header *header = obj->co_lu.lo_header;
+-	wait_queue_t           waiter;
++	wait_queue_entry_t           waiter;
+ 
+ 	if (unlikely(atomic_read(&header->loh_ref) != 1)) {
+ 		struct lu_site *site = obj->co_lu.lo_dev->ld_site;
+diff --git a/lustre/lov/lov_cl_internal.h b/lustre/lov/lov_cl_internal.h
+index ca40cc8f33..22bd07d5eb 100644
+--- a/lustre/lov/lov_cl_internal.h
++++ b/lustre/lov/lov_cl_internal.h
+@@ -314,7 +314,7 @@ struct lov_thread_info {
+ 	struct ost_lvb          lti_lvb;
+ 	struct cl_2queue        lti_cl2q;
+ 	struct cl_page_list     lti_plist;
+-	wait_queue_t		lti_waiter;
++	wait_queue_entry_t		lti_waiter;
+ };
+ 
+ /**
+diff --git a/lustre/lov/lov_object.c b/lustre/lov/lov_object.c
+index e26769ce4e..87d496d8a6 100644
+--- a/lustre/lov/lov_object.c
++++ b/lustre/lov/lov_object.c
+@@ -392,7 +392,7 @@ static void lov_subobject_kill(const struct lu_env *env, struct lov_object *lov,
+ 	struct cl_object        *sub;
+ 	struct lu_site          *site;
+ 	struct lu_site_bkt_data *bkt;
+-	wait_queue_t          *waiter;
++	wait_queue_entry_t      *waiter;
+ 
+         LASSERT(r0->lo_sub[idx] == los);
+ 
+diff --git a/lustre/obdclass/upcall_cache.c b/lustre/obdclass/upcall_cache.c
+index d56cf5ba5c..8ed393819d 100644
+--- a/lustre/obdclass/upcall_cache.c
++++ b/lustre/obdclass/upcall_cache.c
+@@ -148,7 +148,7 @@ struct upcall_cache_entry *upcall_cache_get_entry(struct upcall_cache *cache,
+ {
+ 	struct upcall_cache_entry *entry = NULL, *new = NULL, *next;
+ 	struct list_head *head;
+-	wait_queue_t wait;
++	wait_queue_entry_t wait;
+ 	int rc, found;
+ 	ENTRY;
+ 
+diff --git a/lustre/ptlrpc/gss/gss_svc_upcall.c b/lustre/ptlrpc/gss/gss_svc_upcall.c
+index 41737a3184..d4050b2c05 100644
+--- a/lustre/ptlrpc/gss/gss_svc_upcall.c
++++ b/lustre/ptlrpc/gss/gss_svc_upcall.c
+@@ -936,7 +936,7 @@ int gss_svc_upcall_handle_init(struct ptlrpc_request *req,
+ 	struct ptlrpc_reply_state *rs;
+ 	struct rsc                *rsci = NULL;
+ 	struct rsi                *rsip = NULL, rsikey;
+-	wait_queue_t             wait;
++	wait_queue_entry_t         wait;
+ 	int                        replen = sizeof(struct ptlrpc_body);
+ 	struct gss_rep_header     *rephdr;
+ 	int                        first_check = 1;
+diff --git a/lustre/ptlrpc/sec_bulk.c b/lustre/ptlrpc/sec_bulk.c
+index 1eacdffda1..8e12d48c61 100644
+--- a/lustre/ptlrpc/sec_bulk.c
++++ b/lustre/ptlrpc/sec_bulk.c
+@@ -541,7 +541,7 @@ EXPORT_SYMBOL(pool_is_at_full_capacity);
+  */
+ int sptlrpc_enc_pool_get_pages(struct ptlrpc_bulk_desc *desc)
+ {
+-	wait_queue_t  waitlink;
++	wait_queue_entry_t  waitlink;
+ 	unsigned long   this_idle = -1;
+ 	cfs_time_t      tick = 0;
+ 	long            now;

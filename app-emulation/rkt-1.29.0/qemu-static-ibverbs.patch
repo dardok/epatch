@@ -1,0 +1,11 @@
+--- ./stage1/usr_from_kvm/qemu.mk	2018-05-08 11:38:16.639272038 +0000
++++ ./stage1/usr_from_kvm/qemu.mk.b	2018-05-08 11:38:10.371383060 +0000
+@@ -14,7 +14,7 @@
+     --disable-seccomp --disable-curl --disable-bluez --disable-cap-ng --disable-rbd --disable-libiscsi \
+     --disable-libnfs --disable-smartcard --disable-libusb --disable-glusterfs --disable-archipelago \
+     --disable-tcmalloc --disable-jemalloc --disable-debug-info --static --enable-virtfs --target-list=x86_64-softmmu \
+-    --python=/usr/bin/python2 --disable-werror
++    --python=/usr/bin/python2 --disable-werror --extra-ldflags=-ldl
+ QEMU_ACI_BINARY := $(HV_ACIROOTFSDIR)/qemu
+ 
+ # Using 2.7.0 stable release from official repository

@@ -1,0 +1,22 @@
+diff -u -r -N a/stage1/init/init.go b/stage1/init/init.go
+--- a/stage1/init/init.go	2017-10-02 12:21:52.000000000 -0400
++++ b/stage1/init/init.go	2018-05-08 11:41:37.180628894 -0400
+@@ -219,15 +219,15 @@
+ 	// More paths could be added in that list if some Linux distributions install it in a different path
+ 	// Note that we look in /usr/lib/... first because of the merge:
+ 	// http://www.freedesktop.org/wiki/Software/systemd/TheCaseForTheUsrMerge/
+-	systemdShutdownBin, err := common.LookupPath("systemd-shutdown", "/usr/lib/systemd:/lib/systemd")
++	systemdShutdownBin, err := common.LookupPath("systemd-shutdown", "/lib/systemd")
+ 	if err != nil {
+ 		return err
+ 	}
+-	systemdBin, err := common.LookupPath("systemd", "/usr/lib/systemd:/lib/systemd")
++	systemdBin, err := common.LookupPath("systemd", "/lib/systemd")
+ 	if err != nil {
+ 		return err
+ 	}
+-	systemdJournaldBin, err := common.LookupPath("systemd-journald", "/usr/lib/systemd:/lib/systemd")
++	systemdJournaldBin, err := common.LookupPath("systemd-journald", "/lib/systemd")
+ 	if err != nil {
+ 		return err
+ 	}

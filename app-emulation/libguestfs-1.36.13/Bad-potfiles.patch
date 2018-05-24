@@ -1,0 +1,11 @@
+diff -u -r -N a/po/POTFILES b/po/POTFILES
+--- a/po/POTFILES	2018-01-25 10:14:22.977491140 -0500
++++ b/po/POTFILES	2018-05-24 06:06:58.696687827 -0400
+@@ -1,7 +1,5 @@
+ align/scan.c
+-builder/index-parse.c
+ builder/index-parser-c.c
+-builder/index-scan.c
+ builder/index-struct.c
+ builder/index-validate.c
+ builder/pxzcat-c.c

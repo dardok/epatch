@@ -1,0 +1,12 @@
+diff -u -r -N a/src/rxkad/rxkad_client.c b/src/rxkad/rxkad_client.c
+--- a/src/rxkad/rxkad_client.c	2018-12-05 04:45:15.917605732 -0500
++++ b/src/rxkad/rxkad_client.c	2018-12-05 04:45:52.177069437 -0500
+@@ -37,7 +37,7 @@
+ #include "afs/sysincludes.h"
+ #endif /* !UKERNEL */
+ #ifndef AFS_LINUX22_ENV
+-#include "rpc/types.h"
++//#include "rpc/types.h"
+ #include "rx/xdr.h"
+ #endif
+ #include "rx/rx.h"

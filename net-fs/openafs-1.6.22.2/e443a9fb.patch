@@ -1,0 +1,179 @@
+From e443a9fb67dbc29e6cc36661a4ac6e91af113f23 Mon Sep 17 00:00:00 2001
+From: Benjamin Kaduk <kaduk@mit.edu>
+Date: Sat, 09 Dec 2017 11:37:59 -0600
+Subject: [PATCH] Replace <rpc/types.h> with <rx/xdr.h>
+
+Our in-tree xdr.h appears to have started life as a concatenation of
+rpc/types.h and rpc/xdr.h, and should include all the needed functionality.
+Indeed, commit 7293ddf325b149cae60d3abe7199d08f196bd2b9 even indicates
+that we expect to be using our in-tree XDR everywhere anyway, so the
+system XDR is superfluous.
+
+Note that afs/sysincludes.h (not afsincludes.h!) already includes
+rx/xdr.h ifndef AFS_LINUX22_ENV.
+
+This change should help systems running glibc 2.26 or newer, which has
+stopped providing the Sun RPC headers by default.
+
+While here remove some duplicate includes of rpc/types.h in the
+AIX-specific sources.
+
+The Solaris NFS translator bits cannot really be changed, since the system
+headers are used and have tight interdependencies.
+
+Update rxgen to not emit rpc/types.h inclusion.
+
+[mmeffie: squash 12801 to not emit rpc/types.h from rxgen]
+
+Change-Id: I0b195216affa06ab9e259cb0bab0c8286a1636d9
+Reviewed-on: https://gerrit.openafs.org/12800
+Tested-by: BuildBot <buildbot@rampaginggeek.com>
+Reviewed-by: Michael Meffie <mmeffie@sinenomine.net>
+Reviewed-by: Benjamin Kaduk <kaduk@mit.edu>
+---
+
+diff --git a/src/afs/AIX/osi_misc.c b/src/afs/AIX/osi_misc.c
+index ed145c2..77609a9 100644
+--- a/src/afs/AIX/osi_misc.c
++++ b/src/afs/AIX/osi_misc.c
+@@ -36,7 +36,6 @@
+ #include "osi_vfs.h"
+ #include "netinet/in.h"
+ #include "h/mbuf.h"
+-#include "rpc/types.h"
+ #include "rpc/xdr.h"
+ #include "h/vmuser.h"
+ #include "h/syspest.h"
+diff --git a/src/afs/AIX/osi_vnodeops.c b/src/afs/AIX/osi_vnodeops.c
+index 7fb5556..d0cabe9 100644
+--- a/src/afs/AIX/osi_vnodeops.c
++++ b/src/afs/AIX/osi_vnodeops.c
+@@ -32,7 +32,6 @@
+ #include "h/mbuf.h"
+ #include "h/vmuser.h"
+ #include "h/shm.h"
+-#include "rpc/types.h"
+ #include "rpc/xdr.h"
+ 
+ #include "afs/stds.h"
+diff --git a/src/afs/afs_fetchstore.c b/src/afs/afs_fetchstore.c
+index c75da94..df31f43 100644
+--- a/src/afs/afs_fetchstore.c
++++ b/src/afs/afs_fetchstore.c
+@@ -11,9 +11,6 @@
+ #include "afs/param.h"
+ 
+ #include "afs/sysincludes.h"	/* Standard vendor system headers */
+-#ifndef AFS_LINUX22_ENV
+-#include "rpc/types.h"
+-#endif
+ #ifdef	AFS_ALPHA_ENV
+ #undef kmem_alloc
+ #undef kmem_free
+diff --git a/src/afs/afs_memcache.c b/src/afs/afs_memcache.c
+index e9615a6..936cbe9 100644
+--- a/src/afs/afs_memcache.c
++++ b/src/afs/afs_memcache.c
+@@ -12,9 +12,6 @@
+ 
+ 
+ #include "afs/sysincludes.h"	/* Standard vendor system headers */
+-#ifndef AFS_LINUX22_ENV
+-#include "rpc/types.h"
+-#endif
+ #include "afsincludes.h"	/* Afs-based standard headers */
+ #include "afs/afs_stats.h"	/* statistics */
+ 
+diff --git a/src/afs/afs_nfsdisp.c b/src/afs/afs_nfsdisp.c
+index 9c831be..01f8e2e 100644
+--- a/src/afs/afs_nfsdisp.c
++++ b/src/afs/afs_nfsdisp.c
+@@ -21,7 +21,6 @@
+ #include "rpc/auth_unix.h"
+ #include "rpc/auth_des.h"
+ #include "sys/tiuser.h"
+-#include "rpc/xdr.h"
+ #include "rpc/svc.h"
+ #include "nfs/nfs.h"
+ 
+diff --git a/src/afs/sysincludes.h b/src/afs/sysincludes.h
+index 629b3e6..0e09271 100644
+--- a/src/afs/sysincludes.h
++++ b/src/afs/sysincludes.h
+@@ -406,7 +406,6 @@
+ #  endif
+ # endif /* AFS_SUN5_ENV */
+ 
+-# include "rpc/types.h"
+ # include "rx/xdr.h"
+ 
+ /* Miscellaneous headers */
+diff --git a/src/fsint/afsaux.c b/src/fsint/afsaux.c
+index 604c9b6..cc1cbfe 100644
+--- a/src/fsint/afsaux.c
++++ b/src/fsint/afsaux.c
+@@ -25,7 +25,6 @@
+ #include "afsincludes.h"
+ #else
+ #include "h/types.h"
+-#include "rpc/types.h"
+ #include "rx/xdr.h"
+ #endif
+ #if !defined(AFS_ALPHA_ENV)
+diff --git a/src/rx/rx_kcommon.h b/src/rx/rx_kcommon.h
+index 92752db..b5b6a10 100644
+--- a/src/rx/rx_kcommon.h
++++ b/src/rx/rx_kcommon.h
+@@ -133,9 +133,6 @@
+ #if !defined(AFS_HPUX110_ENV) && !defined(AFS_LINUX22_ENV) && !defined(AFS_DARWIN_ENV)
+ #include "netinet/in_var.h"
+ #endif /* ! AFS_HPUX110_ENV && ! AFS_LINUX22_ENV */
+-#if !defined(AFS_LINUX22_ENV) && !defined(AFS_DUX40_ENV)
+-#include "rpc/types.h"
+-#endif
+ #include "afs/afs_osi.h"
+ #include "rx_kmutex.h"
+ #include "afs/lock.h"
+diff --git a/src/rx/xdr_rx.c b/src/rx/xdr_rx.c
+index b7a2426..9a7aba9 100644
+--- a/src/rx/xdr_rx.c
++++ b/src/rx/xdr_rx.c
+@@ -21,8 +21,6 @@
+ #  include "h/uio.h"
+ #  ifdef AFS_LINUX20_ENV
+ #   include "h/socket.h"
+-#  else
+-#   include "rpc/types.h"
+ #  endif
+ #  ifdef AFS_LINUX22_ENV
+ #   ifndef quad_t
+diff --git a/src/rxgen/rpc_main.c b/src/rxgen/rpc_main.c
+index 168794a..10aee6c 100644
+--- a/src/rxgen/rpc_main.c
++++ b/src/rxgen/rpc_main.c
+@@ -471,9 +471,6 @@
+     f_print(fout, "#ifndef	DST_USA  /* XXXXX */\n");
+     f_print(fout, "#include \"h/time.h\"\n");
+     f_print(fout, "#endif\n");
+-    f_print(fout, "#ifndef AFS_LINUX22_ENV\n");
+-    f_print(fout, "#include \"rpc/types.h\"\n");
+-    f_print(fout, "#endif /* AFS_LINUX22_ENV */\n");
+     f_print(fout, "#ifndef	XDR_GETLONG /* XXXXX */\n");
+     f_print(fout, "#ifdef AFS_LINUX22_ENV\n");
+     f_print(fout, "#ifndef quad_t\n");
+@@ -571,7 +568,6 @@
+ 	    f_print(fout, "#include \"h/stat.h\"\n");
+ 	    f_print(fout, "#include \"netinet/in.h\"\n");
+ 	    f_print(fout, "#include \"h/time.h\"\n");
+-	    f_print(fout, "#include \"rpc/types.h\"\n");
+ 	    f_print(fout, "#include \"rx/xdr.h\"\n");
+ 	    f_print(fout, "#include \"afs/rxgen_consts.h\"\n");
+ 	    f_print(fout, "#include \"afs/afs_osi.h\"\n");
+@@ -645,7 +641,6 @@
+ 	    f_print(fout, "#include \"h/stat.h\"\n");
+ 	    f_print(fout, "#include \"netinet/in.h\"\n");
+ 	    f_print(fout, "#include \"h/time.h\"\n");
+-	    f_print(fout, "#include \"rpc/types.h\"\n");
+ 	    f_print(fout, "#include \"rx/xdr.h\"\n");
+ 	    f_print(fout, "#include \"afs/rxgen_consts.h\"\n");
+ 	    f_print(fout, "#include \"afs/afs_osi.h\"\n");

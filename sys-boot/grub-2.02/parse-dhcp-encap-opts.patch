@@ -1,0 +1,82 @@
+diff -u -r -N a/grub-core/net/bootp.c b/grub-core/net/bootp.c
+--- a/grub-core/net/bootp.c	2017-04-24 05:15:49.000000000 -0400
++++ b/grub-core/net/bootp.c	2019-01-08 04:45:12.427798051 -0500
+@@ -316,8 +316,9 @@
+ {
+   struct grub_net_network_level_interface *inter;
+   int num;
+-  grub_uint8_t *ptr;
++  grub_uint8_t *ptr, *subarg;
+   grub_uint8_t taglength;
++  grub_uint8_t *dhcp_ackend;
+ 
+   if (argc < 4)
+     return grub_error (GRUB_ERR_BAD_ARGUMENT,
+@@ -337,6 +338,8 @@
+   if (inter->dhcp_acklen <= OFFSET_OF (vendor, inter->dhcp_ack))
+     return grub_error (GRUB_ERR_IO, N_("no DHCP options found"));
+ 
++  dhcp_ackend = ((grub_uint8_t *) inter->dhcp_ack) + inter->dhcp_acklen;
++
+   num = grub_strtoul (args[2], 0, 0);
+   if (grub_errno)
+     return grub_errno;
+@@ -353,8 +356,8 @@
+     {
+       grub_uint8_t tagtype;
+ 
+-      if (ptr >= ((grub_uint8_t *) inter->dhcp_ack) + inter->dhcp_acklen)
+-	return grub_error (GRUB_ERR_IO, N_("no DHCP option %d found"), num);
++      if (ptr >= dhcp_ackend - 1)
++	return grub_error (GRUB_ERR_IO, N_("no DHCP option %s found"), args[2]);
+ 
+       tagtype = *ptr++;
+ 
+@@ -364,7 +367,7 @@
+ 
+       /* End tag.  */
+       if (tagtype == 0xff)
+-	return grub_error (GRUB_ERR_IO, N_("no DHCP option %d found"), num);
++	return grub_error (GRUB_ERR_IO, N_("no DHCP option %s found"), args[2]);
+ 
+       taglength = *ptr++;
+ 	
+@@ -373,6 +376,38 @@
+       ptr += taglength;
+     }
+ 
++  if ((subarg = (grub_uint8_t *) grub_strstr (args[2], ".")))
++    {
++      grub_uint8_t tagtype;
++      grub_uint8_t *tagend;
++
++      if (subarg >= (grub_uint8_t *) args[2] + grub_strlen (args[2]))
++	return grub_error (GRUB_ERR_IO, N_("no DHCP option %s found"), args[2]);
++
++      tagend = ptr + taglength;
++
++      num = grub_strtoul ((const char *) (subarg + 1), 0, 0);
++      if (grub_errno)
++        return grub_errno;
++
++      while (1)
++        {
++          if (ptr >= dhcp_ackend - 1 || ptr >= tagend - 1)
++	    return grub_error (GRUB_ERR_IO, N_("no DHCP option %s found"), args[2]);
++
++          tagtype = *ptr++;
++
++          taglength = *ptr++;
++
++          if (tagtype == num)
++            break;
++          ptr += taglength;
++        }
++    }
++
++  if (ptr + taglength > dhcp_ackend)
++    return grub_error (GRUB_ERR_IO, N_("no DHCP option %s found (truncated)"), args[2]);
++
+   if (grub_strcmp (args[3], "string") == 0)
+     {
+       grub_err_t err = GRUB_ERR_NONE;

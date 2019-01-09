@@ -1,0 +1,24 @@
+diff -u -r -N a/lib/iser.c b/lib/iser.c
+--- a/lib/iser.c	2016-10-09 14:54:23.000000000 -0400
++++ b/lib/iser.c	2019-01-09 11:07:42.673589106 -0500
+@@ -31,6 +31,20 @@
+ #include <semaphore.h>
+ #include <poll.h>
+ 
++
++#ifndef container_of
++/**
++  * container_of - cast a member of a structure out to the containing structure
++  * @ptr:        the pointer to the member.
++  * @type:       the type of the container struct this is embedded in.
++  * @member:     the name of the member within the struct.
++  *
++ */
++#define container_of(ptr, type, member) \
++    ((type *) ((uint8_t *)(ptr) - offsetof(type, member)))
++#endif
++
++
+ #ifdef __linux
+ 
+ static int cq_handle(struct iser_conn *iser_conn);

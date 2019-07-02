@@ -1,12 +1,12 @@
 diff -u -r -N a/lnet/klnds/o2iblnd/o2iblnd_cb.c b/lnet/klnds/o2iblnd/o2iblnd_cb.c
---- a/lnet/klnds/o2iblnd/o2iblnd_cb.c	2019-07-02 17:16:35.798373323 +0000
-+++ b/lnet/klnds/o2iblnd/o2iblnd_cb.c	2019-07-02 17:23:09.588880931 +0000
+--- a/lnet/klnds/o2iblnd/o2iblnd_cb.c	2019-07-02 17:37:23.331609771 +0000
++++ b/lnet/klnds/o2iblnd/o2iblnd_cb.c	2019-07-02 17:36:30.010944049 +0000
 @@ -203,7 +203,7 @@
  	 * own this rx (and rx::rx_conn) anymore, LU-5678.
  	 */
  	kiblnd_conn_addref(conn);
 -	rc = ib_post_recv(conn->ibc_cmid->qp, &rx->rx_wrq, &bad_wrq);
-+	rc = ib_post_recv(conn->ibc_cmid->qp, (const struct ib_send_wr *) &rx->rx_wrq, (const struct ib_send_wr **) &bad_wrq);
++	rc = ib_post_recv(conn->ibc_cmid->qp, (const struct ib_recv_wr *) &rx->rx_wrq, (const struct ib_recv_wr **) &bad_wrq);
  	if (unlikely(rc != 0)) {
  		CERROR("Can't post rx for %s: %d, bad_wrq: %p\n",
  		       libcfs_nid2str(conn->ibc_peer->ibp_nid), rc, bad_wrq);
